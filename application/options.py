@@ -13,7 +13,7 @@ class OptionsGUI:
 		title=geometry=""
 		if self.option=="query":
 			title="Query And Search"
-			geometry="480x200+350+150"
+			geometry="920x480+350+150"
 		else:
 			title="Offline Video Processing"
 			geometry="480x150+350+150"
@@ -21,7 +21,7 @@ class OptionsGUI:
 		self.root_window.title(title)
 		self.root_window.geometry(geometry)
 	
-	def __init__(self,parent_window,db_connection,cursor_obj,classifier_model,option="processing"):
+	def __init__(self,parent_window,db_connection,cursor_obj,classifier_model,option="query"):
 
 		#database connection object and object to run queries
 		self.db_connection=db_connection
@@ -32,8 +32,6 @@ class OptionsGUI:
 		self.option=option
 		self.root_window=tk.Toplevel(parent_window)
 		self.configureRoot()
-		
-		self.main_frame=ttk.Frame(self.root_window)
 		
 		self.root_window.option_add("*tearOff",False)
 		self.createMenuBar()
@@ -172,7 +170,76 @@ class OptionsGUI:
 		#self.gui_option.place(x=145,y=120)
 	
 	def createQueryGUI(self):
-		pass
+		
+		self.main_query_frame=ttk.Frame(self.root_window,width=640,height=480)
+
+		#create different label frames for the different parts of the query window
+		self.query_image_frame=ttk.Labelframe(self.main_query_frame,text="Query Image",width=220,height=220)
+		self.query_options_frame=ttk.Labelframe(self.main_query_frame,text="Search Options")
+		self.processed_image_frame=ttk.Labelframe(self.main_query_frame,text="Processed image",width=220,height=220)
+		self.processed_options_frame=ttk.Labelframe(self.main_query_frame,text="Config options")
+
+		self.query_image_frame.configure(borderwidth=2,relief="sunken")
+		self.processed_image_frame.configure(borderwidth=2,relief="sunken")
+
+		self.query_options_frame.configure(borderwidth=2,relief="sunken")
+		self.processed_options_frame.configure(borderwidth=2,relief="sunken")
+
+		#query and retrieval button
+		self.query_retrieval_btn=ttk.Button(self.main_query_frame,text="Start Search & Retrieval")
+
+		#search options 
+		self.colour_option_ckbtn=ttk.Checkbutton(self.query_options_frame,text="Use Colour descriptor")
+		self.shape_option_ckbtn=ttk.Checkbutton(self.query_options_frame,text="Use Shape descriptor")
+		self.category_option_ckbtn=ttk.Checkbutton(self.query_options_frame,text="Select particular category")
+
+		self.category_list=ttk.Combobox(self.query_options_frame,width=18)
+		self.category_list['values']=("Person(M/F)","Bike(motorcycle/bicycle)","Car","Bus","Lorry","All","Other")
+		self.search_category_btn=ttk.Button(self.query_options_frame,text="Retrieve From Category",width=19)
+
+		#query buttons
+		self.insert_btn=ttk.Button(self.main_query_frame,text="     Insert\nQuery Image")
+		self.draw_btn=ttk.Button(self.main_query_frame,text="     Draw\nQuery Image")
+
+		#processed image options
+		self.invert_btn=ttk.Button(self.processed_options_frame,text="Invert Image")
+		self.threshold_option_ckbtn=ttk.Checkbutton(self.processed_options_frame,text="Set manual threshold")
+		self.threshold_scale=ttk.Scale(self.processed_options_frame,orient="horizontal",
+								length=255,from_=0.0,to=255)
+
+
+		#Query window layout
+		self.main_query_frame.grid(row=0,column=0)
+
+		#main query frame layout
+		self.query_image_frame.grid(row=0,column=0,columnspan=5,padx=(5,1),pady=5)
+		self.query_options_frame.grid(row=0,column=5,sticky="NW",columnspan=3,padx=(1,5),pady=5)
+		self.processed_image_frame.grid(row=0,column=8,columnspan=5,padx=(5,1),pady=5)
+		self.processed_options_frame.grid(row=0,column=14,sticky="NW",columnspan=5,padx=(1,5),pady=5)
+
+		self.insert_btn.grid(row=1,column=0,sticky="W",columnspan=2,padx=(5,0),pady=(0,5))
+		self.draw_btn.grid(row=1,column=2,sticky="W",columnspan=2,padx=(0,5),pady=(0,5))
+		self.query_retrieval_btn.grid(row=1,column=8,columnspan=3,padx=5,pady=5)
+
+		#query options frame layout
+		self.colour_option_ckbtn.grid(row=0,column=0,columnspan=3,sticky="NW")
+		self.shape_option_ckbtn.grid(row=1,column=0,columnspan=3,sticky="NW")
+		self.category_option_ckbtn.grid(row=2,column=0,columnspan=3,sticky="NW")
+		self.category_list.grid(row=3,column=1,columnspan=3,sticky="NE")
+		self.search_category_btn.grid(row=4,column=1,columnspan=3,sticky="NE")
+
+		#processed options frame layout
+		self.invert_btn.grid(row=0,column=0,sticky="W")
+		self.threshold_option_ckbtn.grid(row=1,column=0,sticky="W")
+		self.threshold_scale.grid(row=2,column=0,sticky="W")
+		
+		for grid_children in self.query_options_frame.grid_slaves():
+			grid_children.grid_configure(padx=3,pady=3)
+		
+		for grid_children in self.processed_options_frame.grid_slaves():
+			grid_children.grid_configure(padx=3,pady=3)
+
+
 	
 	def showDialog(self):
 		#it opens up a dialog for asking the filename for the surveillance footage
@@ -241,3 +308,4 @@ if __name__=="__main__":
 	#model=classifier.ClassifierModel()
 	model=None
 	OptionsGUI(parent_window=parent_window,db_connection=None,cursor_obj=None,classifier_model=model)
+	parent_window.mainloop()

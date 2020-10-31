@@ -24,7 +24,7 @@ class OfflineProcess(movingregion.MovingRegion):
 				"CREATE TABLE {} ("
 					"id INTEGER UNSIGNED,"
 					"classifier_name CHAR(7),"
-					"thumbnail BLOB,"
+					"thumbnail MEDIUMBLOB,"
 					"colour_descriptor BLOB,"
 					"shape_descriptor BLOB,"
 					"start_frame_time DOUBLE UNSIGNED,"
