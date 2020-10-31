@@ -5,8 +5,8 @@ import cv2
 import scrollableframe as sf
 from PIL import Image,ImageTk
 import time
-import application.featureprocessing.movingregion as movingregion
-from application.featureprocessing.objecttracking.tracker import Tracker
+import application.featureprocessing.offlineprocessing.movingregion as movingregion
+from application.featureprocessing.offlineprocessing.objecttracking.tracker import Tracker
 from mysql.connector import Error
 
 #Everything to do with offline processing i.e. finding moving region,

@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy.optimize import linear_sum_assignment
-from application.featureprocessing.objecttracking.kalmanfilter import KalmanFilter
+from application.featureprocessing.offlineprocessing.objecttracking.kalmanfilter import KalmanFilter
 from application.featureprocessing.featureextraction.shape import fourier_descriptor as fd
 from application.featureprocessing.featureextraction.colour import colour_descriptor as cd
 from mysql.connector import Error

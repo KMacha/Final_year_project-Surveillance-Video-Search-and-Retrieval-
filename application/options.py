@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog,messagebox
 import random
-import application.featureprocessing.previewvideo as preview
-import application.featureprocessing.offlineprocess as offline
+import application.featureprocessing.offlineprocessing.previewvideo as preview
+import application.featureprocessing.offlineprocessing.offlineprocess as offline
 
 
 class OptionsGUI:
