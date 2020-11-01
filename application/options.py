@@ -225,7 +225,7 @@ class OptionsGUI:
 								classifier_model=self.classifier_model)
 	
 	def createQueryGUI(self):
-		query.QueryProcessing(root_window=self.root_window)
+		query.QueryProcessing(root_window=self.root_window,cursor_obj=self.cursor)
 		
 
 			

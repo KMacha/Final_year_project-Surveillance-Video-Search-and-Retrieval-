@@ -3,15 +3,18 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog,messagebox
 from PIL import Image,ImageTk
+from skimage.filters import threshold_otsu
 
 class QueryProcessing:
 
-    def __init__(self,root_window):
+    def __init__(self,root_window,cursor_obj=None):
 
         #the root window is the toplevel window which we are going to 
         #create the gui on
 
         self.root_window=root_window
+        self.cursor=cursor_obj
+
         self.createGUI()
 
     def createGUI(self):
@@ -81,9 +84,17 @@ class QueryProcessing:
     
     def createSearchOptions(self):
         #the table selection combobox
+        tables=list()
+        if self.cursor is not None:
+            query="SHOW TABLES"
+            self.cursor.execute(query)
+            tables=self.cursor.fetchall()
+        
+        tables.append("None")
+
         self.select_table_label=ttk.Label(self.query_options_frame,text="Choose DB table to search")
         self.table_list=ttk.Combobox(self.query_options_frame,state='readonly')
-        self.table_list['values']=("None")
+        self.table_list['values']=tables
 
         self.use_colour_descriptor=tk.IntVar()
         self.colour_option_ckbtn=ttk.Checkbutton(self.query_options_frame,
@@ -95,7 +106,7 @@ class QueryProcessing:
         
         self.category_var=tk.IntVar()
         self.category_option_ckbtn=ttk.Checkbutton(self.query_options_frame,
-                text="Select particular category",variable=self.category_var)
+                text="Select particular category",variable=self.category_var,command=self.activateCategoryChoose)
 
         self.category_list=ttk.Combobox(self.query_options_frame,width=18,state="readonly")
         self.category_list['values']=("Person(M/F)","Bike(motorcycle/bicycle)","Car","Bus","Lorry","All","Other")
@@ -118,15 +129,21 @@ class QueryProcessing:
         self.search_category_btn.grid(row=6,column=1,columnspan=3,sticky="NE")
     
     def createProcessedImageOptions(self):
-        self.invert_btn=ttk.Button(self.processed_options_frame,text="Invert Image")
+        self.invert_btn=ttk.Button(self.processed_options_frame,text="Invert Image",command=self.invertImage)
         
         self.threshold_option_var=tk.IntVar()
         self.threshold_option_ckbtn=ttk.Checkbutton(self.processed_options_frame,text="Set manual threshold")
         #we use the default onvalue and ofvalue of 1 and 0 respectively
-        self.threshold_option_ckbtn.configure(variable=self.threshold_option_var) 
+        self.threshold_option_ckbtn.configure(variable=self.threshold_option_var,
+                                            command=self.activateManualThreshold)
+
+        self.threshold_label=ttk.Label(self.processed_options_frame,text="Threshold Value: ")
+        
+        self.thresh_var=tk.IntVar()
+        self.threshold_value_label=ttk.Label(self.processed_options_frame,textvariable=self.thresh_var)
 
         self.threshold_scale=ttk.Scale(self.processed_options_frame,orient="horizontal",
-                                length=255,from_=0.0,to=255)
+                                length=255,from_=0.0,to=255,command=self.thresholdChange)
         
         #disabled until the query image has been processed
         self.invert_btn.state(['disabled'])
@@ -134,26 +151,119 @@ class QueryProcessing:
         self.threshold_scale.state(['disabled'])
         
         #grid layout for the processed image options
-        self.invert_btn.grid(row=0,column=0,sticky="W")
-        self.threshold_option_ckbtn.grid(row=1,column=0,sticky="W")
-        self.threshold_scale.grid(row=2,column=0,sticky="W")
+        self.invert_btn.grid(row=0,column=0,columnspan=2,sticky="W")
+        self.threshold_option_ckbtn.grid(row=1,column=0,columnspan=3,sticky="W")
+
+        self.threshold_label.grid(row=2,column=0,columnspan=2,sticky="W")
+        self.threshold_value_label.grid(row=2,column=2,sticky="W")
+        #we first remove the labels showing the threshold till the query image is processed
+        self.threshold_label.grid_remove()
+        self.threshold_value_label.grid_remove()
+
+        self.threshold_scale.grid(row=3,column=0,columnspan=5,sticky="W")
 
 
     def insertQueryImage(self):
         #we get the query image and process it
-        query_image=filedialog.askopenfilename()
+        query_image_name=filedialog.askopenfilename()
 
-        image=cv2.imread(query_image)
+        self.query_image=cv2.imread(query_image_name)
         
-        if image is None:
-            errormessage="Error reading image:\n {}".format(query_image)
+        if self.query_image is None:
+            errormessage="Error reading image:\n {}".format(query_image_name)
             messagebox.showinfo(title="Error",message=errormessage,icon="error")
         else:
-            image=cv2.resize(image,(200,200))
-            pil_image=Image.fromarray(image)
+            temp_image=cv2.resize(self.query_image,(200,200))
+            pil_image=Image.fromarray(temp_image)
             tk_image=ImageTk.PhotoImage(pil_image)
 
+            #show the query image on the query label
+            self.query_image_frame.state(["!disabled"])
             self.query_image_label['image']=tk_image
-            self.processed_image_label['image']=tk_image
             self.query_image_label.image=tk_image
+
+            #activate the descriptor buttons setting them both selected
+            self.colour_option_ckbtn.state(["!disabled","!alternate"])
+            self.shape_option_ckbtn.state(["!disabled","!alternate"])
+            self.use_shape_descriptor.set(1)
+            self.use_colour_descriptor.set(1)
+
+            #we then process the image, basically this is just finding the binary image
+            #and show the binary/processed image
+            self.getBinaryImage(image=self.query_image,show_image=True)
+
+            self.processed_image_frame.state(['!disabled'])
+
+            #activate the widgets in the config options frame
+            self.processed_options_frame.state(["!disabled"])
+            self.invert_btn.state(["!disabled"])
+            self.threshold_option_ckbtn.state(["!disabled","!alternate"])
+            self.threshold_option_var.set(0)
+
+    
+    def activateManualThreshold(self):
+        if self.threshold_option_var.get():
+            self.threshold_scale.state(["!disabled"])
+            self.threshold_label.grid()
+            self.threshold_value_label.grid()
+        else:
+            self.threshold_scale.state(["disabled"])
+    
+    def thresholdChange(self,thresh_value):
+        new_thresh_value=int(float(thresh_value))
+        self.thresh_var.set(new_thresh_value)
+
+        self.getBinaryImage(image=self.query_image,thresh_value=new_thresh_value,show_image=True)
+    
+    def activateCategoryChoose(self):
+        #when invoked, it will either deactivate the part for 
+        #choosing and searching using certain category only
+        if self.category_var.get():
+            #activate
+            self.category_list.state(['!disabled'])
+            self.search_category_btn.state(['!disabled'])
+        else:
+            #deactivate
+            self.category_list.state(['disabled'])
+            self.search_category_btn.state(['disabled'])
+    
+    def getBinaryImage(self,image,thresh_value=None,show_image=False):
+
+        if len(image.shape)==3:
+            gray_img=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        else:
+            gray_img=image
+
+        if thresh_value is None:
+            #we use otsu thresholding
+            thresh_value=threshold_otsu(gray_img)
+            #this also means it is the first time the function has been called thus
+            #we set the thresh_value to the threshold_value scale
+            self.threshold_scale.state(['!disabled']) #so that we can set the initial threshold value
+            self.threshold_scale.set(thresh_value)
+            self.threshold_scale.state(['disabled']) #disable it again after setting the initial threshold value
+
+            #we show the variables that show the threshold
+            self.threshold_label.grid()
+            self.threshold_value_label.grid()
+        
+        _,self.binary_image=cv2.threshold(gray_img,thresh_value,255,cv2.THRESH_BINARY)
+
+        if show_image:
+            self.showBinaryImage()
+    
+    def showBinaryImage(self):
+        temp_image=cv2.resize(self.binary_image,(200,200))
+        pil_image=Image.fromarray(temp_image)
+        tk_image=ImageTk.PhotoImage(pil_image)
+
+        self.processed_image_label['image']=tk_image
+        self.processed_image_label.image=tk_image
+    
+    def invertImage(self):
+        self.binary_image=cv2.bitwise_not(self.binary_image)
+        self.showBinaryImage()
+
+        
+
             
