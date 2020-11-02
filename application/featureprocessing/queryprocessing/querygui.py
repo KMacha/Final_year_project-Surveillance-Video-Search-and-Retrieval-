@@ -4,6 +4,7 @@ from tkinter import ttk
 from tkinter import filedialog,messagebox
 from PIL import Image,ImageTk
 from skimage.filters import threshold_otsu
+import application.featureprocessing.queryprocessing.querydb as query_db
 
 class QueryProcessing:
 
@@ -37,7 +38,8 @@ class QueryProcessing:
         self.processed_image_label=ttk.Label(self.processed_image_frame,compound="image",anchor="center")
 
         #query and retrieval button
-        self.query_retrieval_btn=ttk.Button(self.main_query_frame,text="Start Search & Retrieval")
+        self.query_retrieval_btn=ttk.Button(self.main_query_frame,text="Start Search & Retrieval",
+                                    command=self.queryDatabaseUsingImage)
 
         #search options
         self.createSearchOptions()
@@ -54,6 +56,7 @@ class QueryProcessing:
         self.query_image_frame.state(['disabled'])
         self.processed_image_frame.state(['disabled'])
         self.processed_options_frame.state(['disabled'])
+        self.query_retrieval_btn.state(["disabled"])
 
         #Query window layout
         
@@ -83,6 +86,7 @@ class QueryProcessing:
             grid_children.grid_configure(padx=3,pady=3)
     
     def createSearchOptions(self):
+
         #the table selection combobox
         tables=list()
         if self.cursor is not None:
@@ -92,9 +96,14 @@ class QueryProcessing:
         
         tables.append("None")
 
+        #variable for the combobox and setting the default value
+        self.search_table_var=tk.StringVar()
+        self.search_table_var.set("None")
+
         self.select_table_label=ttk.Label(self.query_options_frame,text="Choose DB table to search")
         self.table_list=ttk.Combobox(self.query_options_frame,state='readonly')
-        self.table_list['values']=tables
+        self.table_list.configure(values=tables,textvariable=self.search_table_var)
+        # self.table_list.current(len(self.table_list['values'])-1)
 
         self.use_colour_descriptor=tk.IntVar()
         self.colour_option_ckbtn=ttk.Checkbutton(self.query_options_frame,
@@ -108,9 +117,25 @@ class QueryProcessing:
         self.category_option_ckbtn=ttk.Checkbutton(self.query_options_frame,
                 text="Select particular category",variable=self.category_var,command=self.activateCategoryChoose)
 
-        self.category_list=ttk.Combobox(self.query_options_frame,width=18,state="readonly")
-        self.category_list['values']=("Person(M/F)","Bike(motorcycle/bicycle)","Car","Bus","Lorry","All","Other")
+        self.category_list_var=tk.StringVar()
+        self.category_list_var.set("All")
+        self.category_list=ttk.Combobox(self.query_options_frame,width=18,state="readonly",textvariable=self.category_list_var)
+        self.category_list['values']=("Person(M/F)","Bike(motorcycle/bicycle)","Car","Bus","Lorry","Other","All")
+        # self.category_list.current(len(self.category_list['values'])-1)
+
+        #create a mapping of the selected category and the name of the category in the database
+        self.category_match_dict={
+            "Person(M/F)":"person",
+            "Bike(motorcycle/bicycle)":"bike",
+            "Bus":"bus",
+            "Lorry":"lorry",
+            "Car":"car",
+            "Other":"other",
+            "All":None
+        }
+
         self.search_category_btn=ttk.Button(self.query_options_frame,text="Retrieve From Category",width=19)
+        self.search_category_btn.configure(command=self.queryDatabaseUsingCategory)
 
         #we disable some options until the query image is read and processed
         self.colour_option_ckbtn.state(['disabled','alternate'])
@@ -200,6 +225,9 @@ class QueryProcessing:
             self.threshold_option_ckbtn.state(["!disabled","!alternate"])
             self.threshold_option_var.set(0)
 
+            #we activate the querying button
+            self.query_retrieval_btn.state(["!disabled"])
+
     
     def activateManualThreshold(self):
         if self.threshold_option_var.get():
@@ -263,6 +291,29 @@ class QueryProcessing:
     def invertImage(self):
         self.binary_image=cv2.bitwise_not(self.binary_image)
         self.showBinaryImage()
+    
+    def queryDatabaseUsingImage(self):
+
+        #start by confirming a database table has been selected
+        table_name=self.search_table_var.get()
+        if table_name=="None":
+            messagebox.showinfo(title="Table Selection",message="No table selected",icon="error")
+    
+    def queryDatabaseUsingCategory(self):
+        #start by confirming a database table has been selected
+        table_name=self.search_table_var.get()
+        if table_name=="None":
+            messagebox.showinfo(title="Table Selection",message="No table selected",icon="error")
+            return
+        
+        category_name=self.category_match_dict[self.category_list_var.get()]
+
+        if category_name:
+            query="SELECT * FROM {} WHERE classifier_name='{}'".format(table_name,category_name)
+        else:
+            query="SELECT * FROM {} ".format(table_name)
+        
+        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,use_category_only=True)
 
         
 
