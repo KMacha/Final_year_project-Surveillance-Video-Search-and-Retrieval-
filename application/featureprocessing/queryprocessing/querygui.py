@@ -5,6 +5,8 @@ from tkinter import filedialog,messagebox
 from PIL import Image,ImageTk
 from skimage.filters import threshold_otsu
 import application.featureprocessing.queryprocessing.querydb as query_db
+from application.featureprocessing.featureextraction.shape import fourier_descriptor as fd
+from application.featureprocessing.featureextraction.colour import colour_descriptor as cd
 
 class QueryProcessing:
 
@@ -15,6 +17,9 @@ class QueryProcessing:
 
         self.root_window=root_window
         self.cursor=cursor_obj
+
+        #we create the colour feature descriptor object
+        self.colour_feature_descriptor=cd.ColourDescriptor((8,12,3))
 
         self.createGUI()
 
@@ -134,7 +139,8 @@ class QueryProcessing:
             "All":None
         }
 
-        self.search_category_btn=ttk.Button(self.query_options_frame,text="Retrieve From Category",width=19)
+        self.search_category_btn=ttk.Button(self.query_options_frame,
+                                text="Retrieve using Category\n\t(ONLY)",width=19,)
         self.search_category_btn.configure(command=self.queryDatabaseUsingCategory)
 
         #we disable some options until the query image is read and processed
@@ -199,7 +205,8 @@ class QueryProcessing:
             messagebox.showinfo(title="Error",message=errormessage,icon="error")
         else:
             temp_image=cv2.resize(self.query_image,(200,200))
-            pil_image=Image.fromarray(temp_image)
+            rgb_image=cv2.cvtColor(temp_image,cv2.COLOR_BGR2RGB)
+            pil_image=Image.fromarray(rgb_image)
             tk_image=ImageTk.PhotoImage(pil_image)
 
             #show the query image on the query label
@@ -293,11 +300,30 @@ class QueryProcessing:
         self.showBinaryImage()
     
     def queryDatabaseUsingImage(self):
+        #searches the database by first processing the query image to get the descriptors and then
+        #uses those descriptors to find the images that are close
 
         #start by confirming a database table has been selected
         table_name=self.search_table_var.get()
         if table_name=="None":
             messagebox.showinfo(title="Table Selection",message="No table selected",icon="error")
+            return 
+        
+        category_name=self.category_match_dict[self.category_list_var.get()]
+
+        query_colour_descriptor,query_shape_descriptor=self.getQueryImageDescriptors()
+
+        if category_name:
+            query="SELECT * FROM {} WHERE classifier_name='{}'".format(table_name,category_name)
+        else:
+            query="SELECT * FROM {}".format(table_name)
+        
+        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,
+                                query_shape_descriptor=query_shape_descriptor,
+                                query_colour_descriptor=query_colour_descriptor    
+                            )
+        
+
     
     def queryDatabaseUsingCategory(self):
         #start by confirming a database table has been selected
@@ -306,6 +332,7 @@ class QueryProcessing:
             messagebox.showinfo(title="Table Selection",message="No table selected",icon="error")
             return
         
+        #we get the name of the category choosen as it was input in the database
         category_name=self.category_match_dict[self.category_list_var.get()]
 
         if category_name:
@@ -313,7 +340,20 @@ class QueryProcessing:
         else:
             query="SELECT * FROM {} ".format(table_name)
         
-        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,use_category_only=True)
+        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query)
+    
+    def getQueryImageDescriptors(self):
+        #gets the descriptors for the query image
+
+        query_image_colour_descriptor=query_image_shape_descriptor=None
+
+        if self.use_colour_descriptor.get():
+            query_image_colour_descriptor=self.colour_feature_descriptor.describe(self.query_image)
+        
+        if self.use_shape_descriptor.get():
+            query_image_shape_descriptor=fd.extractFeatures(self.binary_image)
+
+        return query_image_colour_descriptor,query_image_shape_descriptor
 
         
 

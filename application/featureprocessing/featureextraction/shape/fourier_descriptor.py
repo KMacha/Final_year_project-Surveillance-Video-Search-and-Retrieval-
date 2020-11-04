@@ -56,9 +56,11 @@ def fourierDescriptor(contour,contour_centroids=None,no_samples=64):
 	
 	return normalise(magnitudes)
 
-def extractFeatures(image):
+def extractFeatures(image,find_thresh=True):
+	#when find_thresh is False, it means we already have the binary image and just need
+	#to find the contours
 	
-	contour=findOutline(image)
+	contour=findOutline(image,find_thresh=find_thresh)
 		
 	return fourierDescriptor(contour)
 	
