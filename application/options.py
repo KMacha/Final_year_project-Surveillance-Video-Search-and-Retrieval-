@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog,messagebox
 import random
+import os
 import application.featureprocessing.offlineprocessing.previewvideo as preview
 import application.featureprocessing.offlineprocessing.offlineprocess as offline
 import application.featureprocessing.queryprocessing.querygui as query
@@ -13,7 +14,7 @@ class OptionsGUI:
 
 		title=geometry=""
 		if self.option=="query":
-			title="Query And Search"
+			title="Query & Retrieval"
 			geometry="940x480+350+150"
 		else:
 			title="Offline Video Processing"
@@ -22,16 +23,21 @@ class OptionsGUI:
 		self.root_window.title(title)
 		self.root_window.geometry(geometry)
 	
-	def __init__(self,parent_window,db_connection,cursor_obj,classifier_model,option="query"):
+	def __init__(self,parent_window,login_window,db_connection,cursor_obj,classifier_model,option="query"):
 
 		#database connection object and object to run queries
 		self.db_connection=db_connection
 		self.cursor=cursor_obj
 
+		#instance variable for the parent window, necessary so that we can be able to make
+		#the parent window be the first in the stacking order when we exit
+		self.parent_window=parent_window
+		self.login_window=login_window
+
 		self.classifier_model=classifier_model
 		#creates the gui for the option that the user chooses
 		self.option=option
-		self.root_window=tk.Toplevel(parent_window)
+		self.root_window=tk.Toplevel(self.parent_window)
 		self.configureRoot()
 		
 		self.root_window.option_add("*tearOff",False)
@@ -52,24 +58,27 @@ class OptionsGUI:
 		self.option_menu=tk.Menu(self.menubar)
 		
 		if self.option=="query":
-			self.query_menu=tk.Menu(self.option_menu)
-			self.query_menu.add_command(label="Enter query image")
-			self.query_menu.add_command(label="Select Image class") #can I put a combobox on a menu
+			#figure out if it is possible, with the code being in another class
+			# self.query_menu=tk.Menu(self.option_menu)
+			# self.query_menu.add_command(label="Enter query image",command=self.query_gui.insertQueryImage)
+			# self.query_menu.add_command(label="Select Image class") #can I put a combobox on a menu
 			
-			self.option_menu.add_cascade(menu=self.query_menu,label="Query options")
-			self.option_menu.add_command(label="Offline processing")
+			# self.option_menu.add_cascade(menu=self.query_menu,label="Query options")
+			self.option_menu.add_command(label="Offline processing",
+										command=lambda: self.createFeatureProcessingGUI(change_from_query=True))
 		else:
 			self.option_menu.add_command(label="Enter Surveillance footage",command=self.showDialog)
-			self.option_menu.add_command(label="Search and Retrieval")
+			self.option_menu.add_command(label="Search and Retrieval",
+										command=lambda: self.createQueryGUI(change_from_offline=True))
 		
 		self.option_menu.add_separator()
-		self.option_menu.add_command(label="Back to selection options")
+		self.option_menu.add_command(label="Back to selection options",command=self.goBack)
+
+		self.option_menu.add_separator()
+		self.option_menu.add_command(label="Quit/Exit",command=self.exit)
 		
 		self.option_menu.add_separator()
-		self.option_menu.add_command(label="logout")
-		
-		self.option_menu.add_separator()
-		self.option_menu.add_command(label="quit")
+		self.option_menu.add_command(label="logout",command=self.logout)
 		
 		self.configuration_menu=tk.Menu(self.menubar)
 		
@@ -83,8 +92,20 @@ class OptionsGUI:
 		
 		self.root_window['menu']=self.menubar
 	
-	def createFeatureProcessingGUI(self):
+	def createFeatureProcessingGUI(self,change_from_query=False):
 		#creates the gui for processing features from the surveillance video
+
+		#change from query will only be true, when the user selects to go to the offline video
+		#processing from the menu bar of the query and search
+		if change_from_query:
+			#we destroy the current window
+			#and make a new class with the option for query
+			self.root_window.destroy()
+			OptionsGUI(parent_window=self.parent_window,login_window=self.login_window,
+						db_connection=self.db_connection,cursor_obj=self.cursor,
+						classifier_model=self.classifier_model,option="processing")
+			
+			return
 
 		self.processingframe=ttk.Frame(self.root_window,width=480,height=150)
 
@@ -109,7 +130,7 @@ class OptionsGUI:
 		self.checkbtn_val.set("no")
 		self.table_checkbtn.configure(variable=self.checkbtn_val,command=self.tableNameEdit)
 
-		self.table_checkbtn.state(['disabled'])
+		self.table_checkbtn.state(['disabled','alternate'])
 
 		#for editing the table name
 		self.edit_stringvar=tk.StringVar()
@@ -137,7 +158,7 @@ class OptionsGUI:
 		#(will be enabled after video is selected)
 		self.previewbtn.state(['disabled'])
 		self.processbtn.state(['disabled'])
-		self.video_option.state(['disabled'])
+		self.video_option.state(['disabled','alternate'])
 
 		#layout for the widgets
 
@@ -181,10 +202,10 @@ class OptionsGUI:
 		self.table_name.set(footage_name.split(".")[0]+"_"+"table"+"_"+random_number)
 
 		#we enable all the disabled widgets
-		self.table_checkbtn.state(["!disabled"])
+		self.table_checkbtn.state(["!disabled","!alternate"])
 		self.previewbtn.state(["!disabled"])
 		self.processbtn.state(["!disabled"])
-		self.video_option.state(["!disabled"])
+		self.video_option.state(["!disabled","!alternate"])
 
 	def tableNameEdit(self):
 		#we remove the gui for showing the table name and insert for editing
@@ -224,8 +245,44 @@ class OptionsGUI:
 								video_option=self.video_optionvar.get(),
 								classifier_model=self.classifier_model)
 	
-	def createQueryGUI(self):
+	def createQueryGUI(self,change_from_offline=False):
+		#change from offline will be True only when the function is called when the user
+		#selects from the menu of the offline gui to change to search and retrieval
+		if change_from_offline:
+			#we destroy the current window
+			#and make a new class with the option for query
+			self.root_window.destroy()
+			OptionsGUI(parent_window=self.parent_window,login_window=self.login_window,
+						db_connection=self.db_connection,cursor_obj=self.cursor,
+						classifier_model=self.classifier_model,option="query")
+			
+			return
+
 		query.QueryProcessing(root_window=self.root_window,cursor_obj=self.cursor)
+	
+	def goBack(self):
+		#we destroy the options window and we make the option selection window be 
+		#at the front i.e
+
+		self.root_window.destroy()
+		self.parent_window.lift()
+	
+	def exit(self):
+		#to exit we destroy the login_window, since it is the main window,
+		#everything else will be destroyed
+		self.login_window.destroy()
+	
+	def logout(self):
+		#when a user log's out we have to set the always logged in to be false
+		if os.path.isfile(".configsettings"):
+			file=open(".configsettings",'w')
+			file.write("No")
+			file.close()
+
+		self.parent_window.destroy()
+
+		#we deiconify the login_window
+		self.login_window.deiconify()
 		
 
 			

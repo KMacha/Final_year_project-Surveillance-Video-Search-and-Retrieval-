@@ -55,8 +55,8 @@ class AppOptions:
 		self.menubar.add_cascade(menu=self.options_menu,label="Options")
 		self.menubar.add_cascade(menu=self.help_menu,label="Help")
 		
-		self.options_menu.add_command(label="Query system")
-		self.options_menu.add_command(label="Offline processing")
+		self.options_menu.add_command(label="Query system",command=lambda: self.createOptionsGUI("query"))
+		self.options_menu.add_command(label="Offline processing",command=lambda: self.createOptionsGUI("processing"))
 		
 		self.options_menu.add_separator()
 		
@@ -87,8 +87,9 @@ class AppOptions:
 	def createOptionsGUI(self,option_name):
 
 		#calls the method to create the gui for the option choosen
-		opt.OptionsGUI(parent_window=self.root,option=option_name,
-					db_connection=self.db_connection,cursor_obj=self.cursor,classifier_model=self.classifier_model)
+		opt.OptionsGUI(parent_window=self.root,login_window=self.parent_window,
+					option=option_name,db_connection=self.db_connection,
+					cursor_obj=self.cursor,classifier_model=self.classifier_model)
 
 
 
