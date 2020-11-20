@@ -1,49 +1,12 @@
-import cv2
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog,messagebox
-from PIL import Image,ImageTk
 import random
 import numpy as np
 import pickle
 
 import scrollableframe as sf
-
-class ShowThumbnail:
-    times_called=0 #class variable 
-
-    def __init__(self,parent_frame,row_no,col_no,image=None,
-                    start_frame_time=None,end_frame_time=None):
-        ShowThumbnail.times_called+=1 #updating the class variable
-        #create the frame and label that will be used for showing the image thumbnail, together with
-        #some options for the image
-
-        self.tk_image=None 
-
-        if image is not None:
-            rgb_image=cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-            pil_image=Image.fromarray(rgb_image)
-            self.tk_image=ImageTk.PhotoImage(pil_image)
-
-        self.start_frame_time=start_frame_time
-        self.end_frame_time=end_frame_time
-
-        self.frame=ttk.Frame(parent_frame,width=275,height=275,border=1,relief="solid")
-        self.label=ttk.Label(self.frame,text="Thumbnail Image {}".format(ShowThumbnail.times_called)
-                    ,compound="bottom")
-        self.label['image']=self.tk_image
-        self.label.image=self.tk_image
-
-        self.preview_btn=ttk.Button(self.frame,text="Preview\nVideo")
-        self.search_btn=ttk.Button(self.frame,text="   Search using\nthumbnail image")
-
-        self.frame.grid(row=row_no,column=col_no,padx=5,pady=5)
-        self.label.grid(row=0,column=0,columnspan=5)        
-        self.preview_btn.grid(row=1,column=0,columnspan=2,sticky="NE")
-        self.search_btn.grid(row=1,column=2,columnspan=3,sticky="NW")
-        
-
-
+import application.featureprocessing.queryprocessing.dbrecordgui as db_record
 
 class DatabaseQuery:
     def configureMainWindow(self):
@@ -64,7 +27,7 @@ class DatabaseQuery:
         self.query_window.geometry("+50+10") #setting the position only
 
         self.query_window.title("Retrieval Results")
-        self.query_window.maxsize(width=screen_width-50,height=screen_height-60)
+        self.query_window.maxsize(width=screen_width-100,height=screen_height-100)
 
     def __init__(self,cursor_obj,query,query_shape_descriptor=None,
                 query_colour_descriptor=None):
@@ -142,16 +105,35 @@ class DatabaseQuery:
         self.see_all_btn=ttk.Button(self.options_frame,text="Display All Results",
                                     command=self.showAllRecords)
 
+        self.input_video_file_btn=ttk.Button(self.options_frame,text="Select Video File",
+                                            command=self.inputVideo)
+        self.video_file_label=ttk.Label(self.options_frame,text="Video File Name:")
+        self.video_file_name_label=ttk.Label(self.options_frame)
+
         self.options_frame.grid(row=0,column=0,columnspan=5)
         
         self.records_retrieved_label.grid(row=0,column=0,columnspan=3,sticky="W",padx=5)
         self.shown_records_label.grid(row=1,column=0,columnspan=4,sticky="W",padx=(5,0))
         self.no_shown_records_label.grid(row=1,column=4,sticky="W")
         self.see_all_btn.grid(row=0,column=5,padx=5,rowspan=2,columnspan=3)
+        self.input_video_file_btn.grid(row=2,column=0,columnspan=3,padx=(5,0),pady=5,sticky="W")
+        self.video_file_label.grid(row=2,column=3,columnspan=3,sticky="W")
+        self.video_file_name_label.grid(row=2,column=6,columnspan=4,sticky="W")
 
 
     
     def showRecords(self,show_all=False,randomise=True):
+        '''
+            a record fetched from the db is a tuple of
+            id, --> at index 0
+            classifier_name,  --> at index 1
+            thumbnail, -->at index 2
+            colour_descriptor, -->at index 3
+            shape_descriptor, -->at index 4
+            start_frame_time, -->at index 5
+            end_frame_time -->at index 6
+
+        '''
 
         if not show_all:
             self.no_records=10 if len(self.records_list)>=10 else len(self.records_list)
@@ -173,11 +155,15 @@ class DatabaseQuery:
 
         for record in display_records_list:
             image=pickle.loads(record[2])
+            start_time,end_time=record[5],record[6]
             if column==5:
                 row+=1
                 column=0
             
-            ShowThumbnail(parent_frame=self.scrollable_frame,row_no=row,col_no=column,image=image)
+            #we set the class variable for the parent window
+            db_record.DBRecord.parent_window=self.query_window
+            db_record.DBRecord(parent_frame=self.scrollable_frame,row_no=row,col_no=column,
+                            image=image,start_frame_time=start_time,end_frame_time=end_time)
             column+=1
         
         # self.scrollable_frame.grid(row=1,column=0)
@@ -247,3 +233,12 @@ class DatabaseQuery:
             # self.combined_cost=self.combineBoth()
 
         return {k: v for k, v in sorted(combined_cost.items(), key=lambda item: item[1])}
+    
+    def inputVideo(self):
+        file_path=filedialog.askopenfilename()
+        
+        if len(file_path)!=0:
+            file_name=file_path.split("/")[-1]
+
+            self.video_file_name_label["text"]=file_name
+            db_record.DBRecord.video_file_path=file_path

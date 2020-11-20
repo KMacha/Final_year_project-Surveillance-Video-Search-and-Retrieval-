@@ -5,18 +5,24 @@ import cv2
 
 class PreviewVideo:
 
-    def __init__(self,root_window,video_path,video_name):
+    def __init__(self,root_window,video_path=None,title="Preview",video_cap=None,
+                start_frame_time=None,end_frame_time=None):
 
         self.preview_window=tk.Toplevel(root_window)
-        self.preview_window.title(video_name)
+        self.preview_window.title(title)
         self.preview_window.geometry("640x530+300+50")
 
-        self.video_cap=cv2.VideoCapture(video_path)
+        self.pause=False
+
+        self.video_cap=video_cap if (video_cap is not None) else cv2.VideoCapture(video_path)
+
+        self.start_frame_time=start_frame_time
+        self.end_frame_time=end_frame_time
 
         self.playing_speed=10
-
+    
+    def preview(self):
         self.createGUI()
-
         self.showVideo()
     
     def createGUI(self):
@@ -28,6 +34,9 @@ class PreviewVideo:
 
         #to start the video again from the start
         self.again_btn=ttk.Button(self.actions_frame,text="Preview Again",command=self.previewAgain)
+
+        #to pause and play the video
+        self.pause_play_btn=ttk.Button(self.actions_frame,text="Pause",command=self.pausePlayVideo)
 
         self.current_speed=tk.StringVar()
         self.current_speed.set(self.playing_speed)
@@ -50,9 +59,10 @@ class PreviewVideo:
         self.current_speed_label.grid(row=0,column=1)
 
         self.again_btn.grid(row=0,column=2)
-        self.speed_adjust_label.grid(row=0,column=3)
-        self.speed_adjust.grid(row=0,column=4)
-        self.quit_btn.grid(row=0,column=5)
+        self.pause_play_btn.grid(row=0,column=3)
+        self.speed_adjust_label.grid(row=0,column=4)
+        self.speed_adjust.grid(row=0,column=5)
+        self.quit_btn.grid(row=0,column=6)
     
     def updateSpeed(self,current_scale_value):
         #we update the playing speed as set by the user
@@ -60,18 +70,35 @@ class PreviewVideo:
         self.current_speed.set(self.playing_speed)
     
     def previewAgain(self):
-
-        self.video_cap.set(cv2.CAP_PROP_POS_FRAMES,1)
+        if self.start_frame_time!=None:
+            self.video_cap.set(cv2.CAP_PROP_POS_MSEC,self.start_frame_time)
+        else:
+            self.video_cap.set(cv2.CAP_PROP_POS_MSEC,0)
 
         #we check if the video sequence had ended, if it had ended, we call the method again
         #if it had not ended, we allow it to continue.
         #Calling the function again when it has not ended causes the label not to display anything else
         if not self.ret:
             self.showVideo()
+    
+    def pausePlayVideo(self):
+        self.pause=not self.pause #we basically unset/set the value of the pause variable
+
+        if self.pause: #if video is paused
+            #change button text to play
+            self.pause_play_btn["text"]="Play"
+        else: #if the video is not paused
+            #change button text to pause
+            self.pause_play_btn["text"]="Pause"
+
+            #call the show video method again, sine after pauseing it was exited
+            self.showVideo()
+
         
     
     def showVideo(self):
-
+        if self.pause:
+            return
         self.ret,frame=self.video_cap.read()
 
         #we need self.ret so that we can be able to use it in the previewAgain method
@@ -88,6 +115,12 @@ class PreviewVideo:
         self.preview_label.image=tk_image
 
         self.preview_label.configure(image=tk_image)
+
+        if (self.end_frame_time!=None) and (self.video_cap.get(cv2.CAP_PROP_POS_MSEC)>=self.end_frame_time):
+            #we set self.ret to be false so that when preview again is pressed, we can be able to 
+            #replay
+            self.ret=False
+            return
 
         self.preview_label.after(self.playing_speed,self.showVideo)
 

@@ -222,7 +222,9 @@ class OptionsGUI:
 		self.table_frame.grid()
 	
 	def previewVideo(self):
-		preview.PreviewVideo(root_window=self.root_window,video_path=self.footage_path,video_name=self.videoname.get())
+		preview_obj=preview.PreviewVideo(root_window=self.root_window,
+							video_path=self.footage_path,title=self.videoname.get())
+		preview_obj.preview()
 	
 	def processGuiOption(self):
 
