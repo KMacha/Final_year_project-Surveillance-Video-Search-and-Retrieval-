@@ -7,7 +7,7 @@ from application.featureprocessing.featureextraction.colour import colour_descri
 from mysql.connector import Error
 from cv2 import resize as cv2_resize
 import time
-import multiprocessing as mp
+
 
 class SingleObjectTracker:
 
@@ -127,7 +127,6 @@ class Tracker:
 
             object_id_count: starting identification of the object
         '''
-        mp.set_start_method("fork")
         self.dist_thresh=dist_thresh
         self.max_frames_to_skip=max_frames_skip
         self.object_id_count=object_id_count
@@ -171,8 +170,6 @@ class Tracker:
 
     def classifyThumbnail(self,multi_obj,idx,max_idx):
         #this function when called in parallel
-
-        print("Process has come ",mp.current_process().name)
 
         while True:
             print("the value of idx: ",idx.value)
@@ -267,22 +264,6 @@ class Tracker:
             self.object_id_count+=1
 
             self.object_trackers=np.append(self.object_trackers,object_track)
-
-
-        #after accumulating the list of the object trackers
-        no_processes=len(self.object_trackers) if len(self.object_trackers)<3 else 3
-        idx=mp.Value("i",0)
-        max_idx=mp.Value("i",len(self.object_trackers))
-        classifier_processes=[mp.Process(target=self.classifyThumbnail,args=(self.object_trackers,idx,max_idx)) for _ in range(no_processes)]
-
-        for process in classifier_processes:
-            process.start()
-
-        for process in classifier_processes:
-            process.join()
-
-        end_time=time.time()
-        print(f"initialisation vector took {end_time-start_time} seconds")
     
     def calculateCost(self):
         #we calculate the cost for each.
@@ -403,7 +384,6 @@ class Tracker:
                 self.object_trackers=np.append(self.object_trackers,object_track)
 
             stop_time=time.time()
-            print(f"Unassigned took {stop_time-start_time} seconds ")
     
     def updateTrackingObjectsState(self):
         for i in range(len(self.assignment)):
