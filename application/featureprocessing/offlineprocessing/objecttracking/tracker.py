@@ -162,7 +162,7 @@ class Tracker:
         roi=self.image[start_col_index:end_col_index,start_row_index:end_row_index]
 
         if set_thumbnail and obj is not None:
-            obj.thumbnail=cv2_resize(roi,(220,220))
+            obj.thumbnail=cv2_resize(roi,(224,224))
             obj.classifier_result=self.classifier_model.predictClass(roi)
             
 
