@@ -48,8 +48,8 @@ class Login:
 			widget.grid_configure(padx=2,pady=2)
 
 		#we create the model for classifying
-		# self.model=classifier.ClassifierModel()
-		self.model=None
+		self.model=classifier.ClassifierModel()
+		#self.model=None
 
 		if os.path.isfile(".configsettings"):
 			file=open(".configsettings",'r')
