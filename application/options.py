@@ -292,11 +292,15 @@ class OptionsGUI:
 
 
 if __name__=="__main__":
-	from model import classifier
-	parent_window=tk.Tk()
-	parent_window.title("helping visualize")
-	print("just visualising how it looks, NO DATABASE")
-	#model=classifier.ClassifierModel()
-	model=None
-	OptionsGUI(parent_window=parent_window,db_connection=None,cursor_obj=None,classifier_model=model)
-	parent_window.mainloop()
+    from model import classifier
+    parent_window=tk.Tk()
+    parent_window.title("helping visualize")
+    print("just visualising how it looks, NO DATABASE")
+    model=classifier.ClassifierModel()
+    #model=None
+    OptionsGUI(parent_window=parent_window,db_connection=None,cursor_obj=None,classifier_model=model,login_window=None,option="nothing")
+    print("This is just for testing")
+    print("A lot of things are not going to work in this one")
+    parent_window.mainloop()
+
+

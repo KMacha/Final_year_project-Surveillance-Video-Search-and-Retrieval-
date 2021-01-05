@@ -6,7 +6,8 @@ from application.featureprocessing.featureextraction.shape import fourier_descri
 from application.featureprocessing.featureextraction.colour import colour_descriptor as cd
 from mysql.connector import Error
 from cv2 import resize as cv2_resize
-
+import time
+import multiprocessing as mp
 
 class SingleObjectTracker:
 
@@ -126,7 +127,7 @@ class Tracker:
 
             object_id_count: starting identification of the object
         '''
-
+        mp.set_start_method("fork")
         self.dist_thresh=dist_thresh
         self.max_frames_to_skip=max_frames_skip
         self.object_id_count=object_id_count
@@ -163,12 +164,28 @@ class Tracker:
 
         if set_thumbnail and obj is not None:
             obj.thumbnail=cv2_resize(roi,(220,220))
-            obj.classifier_result=self.classifier_model.predictClass(roi)
+            #self.classifyThumbnail(obj)
             
 
         return self.colour_feature_descriptor.describe(roi)
 
-    
+    def classifyThumbnail(self,multi_obj,idx,max_idx):
+        #this function when called in parallel
+
+        print("Process has come ",mp.current_process().name)
+
+        while True:
+            print("the value of idx: ",idx.value)
+            with idx.get_lock() and max_idx.get_lock():
+                if idx.value==max_idx.value:
+                    break #we get out of the loop thus ending the function
+                obj=multi_obj[idx.value]
+
+                idx.value+=1
+
+                if self.classifier_model is not None:
+                    obj.classifier_result=self.classifier_model.predictClass(obj.thumbnail)
+
     def update(self,image,bounding_rects,contours,centroid_detections,timestamp):
 
         '''
@@ -238,10 +255,10 @@ class Tracker:
     def initTrackVector(self):
         #we initialize the tracking vector if it has not yet been created 
 
+        start_time=time.time()
         for index,centroid_co_ordinates in enumerate(self.centroid_detections):
             object_track=SingleObjectTracker(centroid_co_ordinates,self.object_id_count,
                                             table_name=self.table_name)
-
             #get the shape descriptor
             object_track.start_time=self.timestamp
             object_track.shape_descriptor=fd.fourierDescriptor(self.contours[index],self.centroid_detections[index])
@@ -250,6 +267,22 @@ class Tracker:
             self.object_id_count+=1
 
             self.object_trackers=np.append(self.object_trackers,object_track)
+
+
+        #after accumulating the list of the object trackers
+        no_processes=len(self.object_trackers) if len(self.object_trackers)<3 else 3
+        idx=mp.Value("i",0)
+        max_idx=mp.Value("i",len(self.object_trackers))
+        classifier_processes=[mp.Process(target=self.classifyThumbnail,args=(self.object_trackers,idx,max_idx)) for _ in range(no_processes)]
+
+        for process in classifier_processes:
+            process.start()
+
+        for process in classifier_processes:
+            process.join()
+
+        end_time=time.time()
+        print(f"initialisation vector took {end_time-start_time} seconds")
     
     def calculateCost(self):
         #we calculate the cost for each.
@@ -352,12 +385,11 @@ class Tracker:
         #we start new tracks for the unassigned detections
         if len(unassigned_detections)>0:
 
+            start_time=time.time()
             for index in unassigned_detections:
-
                 #we initialize kalman filter for the new detection, (object to be tracked)
                 object_track=SingleObjectTracker(self.centroid_detections[index],self.object_id_count,
                                                 table_name=self.table_name)
-
 
                 object_track.start_time=self.timestamp
                 #get the shape descriptor
@@ -369,6 +401,9 @@ class Tracker:
 
                 self.object_id_count+=1
                 self.object_trackers=np.append(self.object_trackers,object_track)
+
+            stop_time=time.time()
+            print(f"Unassigned took {stop_time-start_time} seconds ")
     
     def updateTrackingObjectsState(self):
         for i in range(len(self.assignment)):
