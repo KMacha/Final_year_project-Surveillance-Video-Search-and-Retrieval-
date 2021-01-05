@@ -163,7 +163,9 @@ class Tracker:
 
         if set_thumbnail and obj is not None:
             obj.thumbnail=cv2_resize(roi,(224,224))
-            obj.classifier_result=self.classifier_model.predictClass(roi)
+
+            if self.classifier_model is not None:
+                obj.classifier_result=self.classifier_model.predictClass(roi)
             
 
         return self.colour_feature_descriptor.describe(roi)
