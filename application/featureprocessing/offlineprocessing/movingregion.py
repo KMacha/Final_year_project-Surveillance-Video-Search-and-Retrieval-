@@ -6,6 +6,7 @@ import imutils
 import sys
 import numpy as np
 import time
+import pybgs as bgs
 
 class MovingRegion:
 
@@ -18,6 +19,8 @@ class MovingRegion:
         self.scale=(self.new_width/original_width,self.new_height/original_height)
 
         self.kernel=np.ones(shape=(3,3),dtype=np.uint8)
+
+        self.vibe_algorithm=bgs.ViBe()
     
     def autoCanny(self,image):
         mean=image.mean()
@@ -66,24 +69,15 @@ class MovingRegion:
         #cv2.imshow("dilated",cv2.resize(dilated_image,(640,480)))
         return dilated_image
     
-    def findMovingArea(self,diff_image_1,diff_image_2,gray_image_curr):
+    def findMovingArea(self,frame):
 
-        final_diff_image=cv2.bitwise_and(diff_image_1,diff_image_2)
-        canny_curr_frame=self.autoCanny(gray_image_curr)
-
-        #we do the canny comparisons 
-        canny_diff_image_1=cv2.bitwise_and(canny_curr_frame,diff_image_1)
-        canny_diff_image_2=cv2.bitwise_and(canny_curr_frame,diff_image_2)
-
-        final_canny_diff_image=cv2.bitwise_or(canny_diff_image_1,canny_diff_image_2)
-
-        final_moving_area=cv2.bitwise_or(final_diff_image,final_canny_diff_image)
+        final_moving_area=self.vibe_algorithm.apply(frame)
 
         return final_moving_area
 
-    def findValidContours(self,diff_image):
+    def findValidContours(self,image):
         #since we are using open cv 4
-        contours,_=cv2.findContours(diff_image,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+        contours,_=cv2.findContours(image,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
         #contours=contours[1] if imutils.is_cv3() else contours[0]
 
         valid_contours=[]
@@ -112,63 +106,34 @@ class MovingRegion:
 
 
 if __name__=="__main__":
-    pass
-    # #ret,curr_frame=videocap.read()
-    # #ret,frame=videocap.read()
-    # #print(curr_frame.shape)
+    import os
+
+    obj=MovingRegion(original_width=1280,original_height=720)
+
+    video_path="/home/macha/Programming/School Final Year Project/project/videos/vtest.avi"
+
+    video_cap=cv2.VideoCapture(video_path)
+
+    if video_cap.isOpened():
+        print("yes it is open")
+    else:
+        print("error while opening video capture")
+        os.system("exit")
     
-    # new_curr_frame=cv2.resize(curr_frame,(200,355))
+
+    while True:
+
+        ret,frame=video_cap.read()
+
+        if not ret: break
+
+        moving_area=obj.findMovingArea(frame)
+
+        cv2.imshow("frame",cv2.resize(frame,(640,480)))
+        cv2.imshow("moving",cv2.resize(moving_area,(640,480)))
+
+        if cv2.waitKey(30) & 0xff==ord('q'):
+            video_cap.release()
+            break
     
-    # if not ret:
-    #     print("error when reading video")
-    #     sys.exit(-1)
-
-    # prev_frame=cv2.resize(curr_frame,(200,355))
-    # next_frame=cv2.resize(frame,(200,355))
-    # unresized_next_frame=frame.copy()
-
-    # gray_image_prev=cv2.cvtColor(prev_frame,cv2.COLOR_BGR2GRAY)
-    # gray_image_curr=cv2.cvtColor(new_curr_frame,cv2.COLOR_BGR2GRAY)
-    # diff_image_1=getDifferenceImage(gray_image_prev,gray_image_curr)
-    
-    # while True:
-    #     temp_curr_frame=new_curr_frame.copy() 
-
-    #     gray_image_curr=cv2.cvtColor(new_curr_frame,cv2.COLOR_BGR2GRAY)
-
-    #     gray_image_next=cv2.cvtColor(next_frame,cv2.COLOR_BGR2GRAY)
-
-    #     #since in the next step the previous frame will be the value of the current frame
-    #     #and the current frame will be the value of the next frame
-    #     #there is no need to calculate diff_image_1 again, since it will be the similar
-    #     #to the previous copy of diff_image_2
-        
-    #     diff_image_2=getDifferenceImage(gray_image_curr,gray_image_next)
-
-    #     diff_image=cv2.bitwise_and(diff_image_1,diff_image_2)
-    #     moving_area=cv2.bitwise_xor(diff_image,diff_image_2)
-
-    #     valid_contours,bigger_contours=findValidContours(diff_image)
-    #     #print("valid contours found for image: {}".format(len(valid_contours)))
-    #     cv2.putText(temp_curr_frame,"No Valid contours: "+str(len(valid_contours)),(5,10),cv2.FONT_HERSHEY_SIMPLEX,fontScale=0.5,color=(0,0,255),thickness=2)
-    #     cv2.drawContours(temp_curr_frame,valid_contours,-1,(127,200,0),2)
-    #     cv2.imshow(" 3 frame differencing showing contours",temp_curr_frame)
-        
-    #     #cv2.putText(curr_frame,"No Valid contours: "+str(len(valid_contours)),(5,10),cv2.FONT_HERSHEY_SIMPLEX,fontScale=0.5,color=(0,0,255),thickness=2)
-    #     #cv2.drawContours(curr_frame,bigger_contours,-1,(127,200,0),2)
-        
-    #     #resized_640_curr=cv2.resize(curr_frame,(640,480))
-    #     #cv2.imshow("640*480",resized_640_curr)
-        
-    #     new_curr_frame=next_frame.copy()
-    #     curr_frame=unresized_next_frame.copy()
-
-    #     ret,frame=videocap.read()
-
-    #     if not ret: break
-        
-    #     unresized_next_frame=frame.copy()
-    #     next_frame=cv2.resize(frame,(200,355))
-
-    #     #we set difference image 1 to be the copy of difference image 2
-    #     diff_image_1=diff_image_2.copy() 
+    cv2.destroyAllWindows()
