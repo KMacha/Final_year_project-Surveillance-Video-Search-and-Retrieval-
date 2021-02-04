@@ -23,6 +23,10 @@ class QueryProcessing:
 
         self.createGUI()
 
+        if query_image is not None:
+            #this will ensure that everything is done just as if we had inserted the image ourselves
+            self.insertQueryImage(query_image=query_image)
+
     def createGUI(self):
         self.main_query_frame=ttk.Frame(self.root_window,width=940,height=480)
 
@@ -194,16 +198,20 @@ class QueryProcessing:
         self.threshold_scale.grid(row=3,column=0,columnspan=5,sticky="W")
 
 
-    def insertQueryImage(self):
+    def insertQueryImage(self,query_image=None):
         #we get the query image and process it
-        query_image_name=filedialog.askopenfilename()
+        if query_image is None:
+            query_image_name=filedialog.askopenfilename()
 
-        self.query_image=cv2.imread(query_image_name)
+            self.query_image=cv2.imread(query_image_name)
+        else:
+            self.query_image=query_image
         
         if self.query_image is None:
             errormessage="Error reading image:\n {}".format(query_image_name)
             messagebox.showinfo(title="Error",message=errormessage,icon="error")
         else:
+            print("trying to update the tkinter box")
             temp_image=cv2.resize(self.query_image,(200,200))
             rgb_image=cv2.cvtColor(temp_image,cv2.COLOR_BGR2RGB)
             pil_image=Image.fromarray(rgb_image)
@@ -321,7 +329,7 @@ class QueryProcessing:
         query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,
                                 query_shape_descriptor=query_shape_descriptor,
                                 query_colour_descriptor=query_colour_descriptor,
-                                table_name=table_name  
+                                table_name=table_name,parent_window=self.root_window
                             )
         
 
@@ -341,7 +349,8 @@ class QueryProcessing:
         else:
             query="SELECT * FROM {} ".format(table_name)
         
-        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,table_name=table_name)
+        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,table_name=table_name,
+                                parent_window=self.root_window)
     
     def getQueryImageDescriptors(self):
         #gets the descriptors for the query image

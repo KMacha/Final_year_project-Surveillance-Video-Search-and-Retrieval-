@@ -16,9 +16,10 @@ import application.featureprocessing.queryprocessing.querydb as query_db
 class DBRecord:
     #class variables
     instances_created=instances_destroyed=0
-    video_file_path=None
-    video_cap=None
-    parent_window=None #it will be set before the class is called
+    video_file_path=video_cap=None
+
+    #grand parent window is the parent window to the parent window
+    grand_parent_window=parent_window=None #it will be set before the class is called
     table_name=None
     cursor=None
 
@@ -72,8 +73,10 @@ class DBRecord:
         
         #we set the video capture object to the time saved in the database
         DBRecord.video_cap.set(cv2.CAP_PROP_POS_MSEC,self.start_frame_time)
-        query_preview.PreviewVideo(root_window=DBRecord.parent_window,video_cap=DBRecord.video_cap,
-                                start_frame_time=self.start_frame_time,end_frame_time=self.end_frame_time)
+        query_preview.PreviewVideo(grand_parent_window=self.grand_parent_window,
+                                root_window=DBRecord.parent_window,video_cap=DBRecord.video_cap,
+                                start_frame_time=self.start_frame_time,end_frame_time=self.end_frame_time,
+                                cursor=DBRecord.cursor)
     
     def configureThumbnailWindow(self):
         self.thumbnail_window.title("thumbnail image search")

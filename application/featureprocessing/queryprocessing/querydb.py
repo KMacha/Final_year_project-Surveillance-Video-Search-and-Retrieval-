@@ -30,7 +30,7 @@ class DatabaseQuery:
         self.query_window.maxsize(width=screen_width-100,height=screen_height-100)
 
     def __init__(self,cursor_obj,query,query_shape_descriptor=None,
-                query_colour_descriptor=None,table_name=None):
+                query_colour_descriptor=None,table_name=None,parent_window=None):
         '''
             a record fetched from the db is a tuple of
             id, --> at index 0
@@ -45,6 +45,7 @@ class DatabaseQuery:
 
         self.cursor=cursor_obj
         self.table_name=table_name
+        self.parent_window=parent_window
 
         self.cursor.execute(query)
 
@@ -165,7 +166,8 @@ class DatabaseQuery:
                 row+=1
                 column=0
             
-            #we set the class variable for the parent window
+            #we set the class variable for the parent window and grand parent window
+            db_record.DBRecord.grand_parent_window=self.parent_window
             db_record.DBRecord.parent_window=self.query_window
             db_record.DBRecord.table_name=self.table_name
             db_record.DBRecord.cursor=self.cursor
