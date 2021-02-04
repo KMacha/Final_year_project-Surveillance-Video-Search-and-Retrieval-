@@ -10,7 +10,7 @@ from application.featureprocessing.featureextraction.colour import colour_descri
 
 class QueryProcessing:
 
-    def __init__(self,root_window,cursor_obj=None):
+    def __init__(self,root_window,cursor_obj=None,query_image=None):
 
         #the root window is the toplevel window which we are going to 
         #create the gui on
@@ -320,7 +320,8 @@ class QueryProcessing:
         
         query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,
                                 query_shape_descriptor=query_shape_descriptor,
-                                query_colour_descriptor=query_colour_descriptor    
+                                query_colour_descriptor=query_colour_descriptor,
+                                table_name=table_name  
                             )
         
 
@@ -340,7 +341,7 @@ class QueryProcessing:
         else:
             query="SELECT * FROM {} ".format(table_name)
         
-        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query)
+        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,table_name=table_name)
     
     def getQueryImageDescriptors(self):
         #gets the descriptors for the query image

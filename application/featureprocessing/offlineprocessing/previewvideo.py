@@ -40,12 +40,12 @@ class PreviewVideo:
 
         self.current_speed=tk.StringVar()
         self.current_speed.set(self.playing_speed)
-        self.speed_label=ttk.Label(self.actions_frame,text="Current Speed:")
+        self.speed_label=ttk.Label(self.actions_frame,text="Play Speed:")
         self.current_speed_label=ttk.Label(self.actions_frame,textvariable=self.current_speed)
 
         #spinbox to increase or decrease the speed
         self.speed_adjust_label=ttk.Label(self.actions_frame,text="Speed:")
-        self.speed_adjust=ttk.Scale(self.actions_frame,from_=1.0,to=100.0,orient="horizontal",length=200,command=self.updateSpeed)
+        self.speed_adjust=ttk.Scale(self.actions_frame,from_=1.0,to=100.0,orient="horizontal",length=150,command=self.updateSpeed)
         self.speed_adjust.set(self.playing_speed)
 
         self.quit_btn=ttk.Button(self.actions_frame,text="Exit",command=self.preview_window.destroy)
@@ -60,9 +60,11 @@ class PreviewVideo:
 
         self.again_btn.grid(row=0,column=2)
         self.pause_play_btn.grid(row=0,column=3)
-        self.speed_adjust_label.grid(row=0,column=4)
-        self.speed_adjust.grid(row=0,column=5)
-        self.quit_btn.grid(row=0,column=6)
+
+        #leave one column, will be useful for when we are adding for querying
+        self.speed_adjust_label.grid(row=0,column=5)
+        self.speed_adjust.grid(row=0,column=6)
+        self.quit_btn.grid(row=0,column=7)
     
     def updateSpeed(self,current_scale_value):
         #we update the playing speed as set by the user
@@ -99,15 +101,15 @@ class PreviewVideo:
     def showVideo(self):
         if self.pause:
             return
-        self.ret,frame=self.video_cap.read()
+        self.ret,self.frame=self.video_cap.read()
 
         #we need self.ret so that we can be able to use it in the previewAgain method
         if not self.ret:
             return
         
-        frame=cv2.resize(frame,(640,480))
+        self.frame=cv2.resize(self.frame,(640,480))
         #frame=cv2.flip(frame,1)
-        frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
+        frame=cv2.cvtColor(self.frame,cv2.COLOR_BGR2RGB)
 
         pil_image=Image.fromarray(frame)
         tk_image=ImageTk.PhotoImage(pil_image)
