@@ -161,6 +161,7 @@ class OfflineProcess(movingregion.MovingRegion):
         #implement later
 
         self.query_btn=ttk.Button(self.control_frame,text="Go to Query")
+        self.query_btn.state(["disabled"])
         self.quit_btn=ttk.Button(self.control_frame,text="Cancel Processing",command=self.Quit)
         self.view_btn=ttk.Button(self.control_frame,text="view bigger",command=self.viewBiggerVideo)
 
@@ -338,13 +339,19 @@ class OfflineProcess(movingregion.MovingRegion):
             label=ttk.Label(self.scrollable_textual_frame)
             label.grid(sticky="nw")
 
+            self.progress_label["text"]="Saving remaining objects to database"
+
             label['text']="Final Save>>____"
             label['text']+=" Saving remaining objects to database..."
+            self.quit_btn.state(["disabled"])
             self.main_window.update()
 
             self.tracker_obj.finalSave()
+            self.query_btn.state(["!disabled"])
+            self.quit_btn.state(["!disabled"])
 
             label['text']+=" Remaining objects saved to database"
+            self.progress_label["text"]="All objects saved to the database"
             self.main_window.update()
 
             self.scrollable_frame_obj.setAutoScroll(value=False)
@@ -370,6 +377,5 @@ class OfflineProcess(movingregion.MovingRegion):
 
     def changeButtons(self):
         #this will change the states of the buttons after processing has been done
-        self.query_btn.state(["!disabled"])
         self.quit_btn['text']="Quit"
         

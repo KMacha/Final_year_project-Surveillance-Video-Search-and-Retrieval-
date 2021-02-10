@@ -92,7 +92,7 @@ class SingleObjectTracker:
     def insertToDB(self,cursor_obj):
         #saves its values to the database
         try:
-            cursor_obj.execute(self.insert_query,(self.object_id,self.classifier_result,
+            cursor_obj.execute(self.insert_query,(self.object_id,str(self.classifier_result),
                                                 self.binary_thumbnail,
                                                 self.binary_colour_descriptor,
                                                 self.binary_shape_descriptor,

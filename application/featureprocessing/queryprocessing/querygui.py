@@ -10,7 +10,7 @@ from application.featureprocessing.featureextraction.colour import colour_descri
 
 class QueryProcessing:
 
-    def __init__(self,root_window,cursor_obj=None):
+    def __init__(self,root_window,cursor_obj=None,query_image=None):
 
         #the root window is the toplevel window which we are going to 
         #create the gui on
@@ -22,6 +22,10 @@ class QueryProcessing:
         self.colour_feature_descriptor=cd.ColourDescriptor((8,12,3))
 
         self.createGUI()
+
+        if query_image is not None:
+            #this will ensure that everything is done just as if we had inserted the image ourselves
+            self.insertQueryImage(query_image=query_image)
 
     def createGUI(self):
         self.main_query_frame=ttk.Frame(self.root_window,width=940,height=480)
@@ -194,11 +198,14 @@ class QueryProcessing:
         self.threshold_scale.grid(row=3,column=0,columnspan=5,sticky="W")
 
 
-    def insertQueryImage(self):
+    def insertQueryImage(self,query_image=None):
         #we get the query image and process it
-        query_image_name=filedialog.askopenfilename()
+        if query_image is None:
+            query_image_name=filedialog.askopenfilename()
 
-        self.query_image=cv2.imread(query_image_name)
+            self.query_image=cv2.imread(query_image_name)
+        else:
+            self.query_image=query_image
         
         if self.query_image is None:
             errormessage="Error reading image:\n {}".format(query_image_name)
@@ -320,7 +327,8 @@ class QueryProcessing:
         
         query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,
                                 query_shape_descriptor=query_shape_descriptor,
-                                query_colour_descriptor=query_colour_descriptor    
+                                query_colour_descriptor=query_colour_descriptor,
+                                table_name=table_name,parent_window=self.root_window
                             )
         
 
@@ -340,7 +348,8 @@ class QueryProcessing:
         else:
             query="SELECT * FROM {} ".format(table_name)
         
-        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query)
+        query_db.DatabaseQuery(cursor_obj=self.cursor,query=query,table_name=table_name,
+                                parent_window=self.root_window)
     
     def getQueryImageDescriptors(self):
         #gets the descriptors for the query image

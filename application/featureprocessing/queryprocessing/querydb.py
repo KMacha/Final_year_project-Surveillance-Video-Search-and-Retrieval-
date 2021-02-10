@@ -30,7 +30,7 @@ class DatabaseQuery:
         self.query_window.maxsize(width=screen_width-100,height=screen_height-100)
 
     def __init__(self,cursor_obj,query,query_shape_descriptor=None,
-                query_colour_descriptor=None):
+                query_colour_descriptor=None,table_name=None,parent_window=None):
         '''
             a record fetched from the db is a tuple of
             id, --> at index 0
@@ -44,6 +44,8 @@ class DatabaseQuery:
         '''
 
         self.cursor=cursor_obj
+        self.table_name=table_name
+        self.parent_window=parent_window
 
         self.cursor.execute(query)
 
@@ -120,6 +122,9 @@ class DatabaseQuery:
         self.video_file_label.grid(row=2,column=3,columnspan=3,sticky="W")
         self.video_file_name_label.grid(row=2,column=6,columnspan=4,sticky="W")
 
+        if db_record.DBRecord.video_file_path is not None:
+            self.video_file_name_label["text"]=db_record.DBRecord.video_file_path.split("/")[-1]
+
 
     
     def showRecords(self,show_all=False,randomise=True):
@@ -156,14 +161,22 @@ class DatabaseQuery:
         for record in display_records_list:
             image=pickle.loads(record[2])
             start_time,end_time=record[5],record[6]
+            colour_descriptor,shape_descriptor=pickle.loads(record[3]),pickle.loads(record[4])
             if column==5:
                 row+=1
                 column=0
             
-            #we set the class variable for the parent window
+            #we set the class variable for the parent window and grand parent window
+            db_record.DBRecord.grand_parent_window=self.parent_window
             db_record.DBRecord.parent_window=self.query_window
+            db_record.DBRecord.table_name=self.table_name
+            db_record.DBRecord.cursor=self.cursor
             db_record.DBRecord(parent_frame=self.scrollable_frame,row_no=row,col_no=column,
-                            image=image,start_frame_time=start_time,end_frame_time=end_time)
+                                image=image,start_frame_time=start_time,
+                                end_frame_time=end_time,
+                                colour_descriptor=colour_descriptor,
+                                shape_descriptor=shape_descriptor
+                            )
             column+=1
         
         # self.scrollable_frame.grid(row=1,column=0)
