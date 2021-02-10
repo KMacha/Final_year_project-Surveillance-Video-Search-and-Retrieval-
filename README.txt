@@ -5,6 +5,9 @@ A standard python installation with additional modules is required.
 install tkinter, if not installed, for your system by following instructions in the given link below.
 link:https://tkdocs.com/tutorial/install.html
 
+installation for the pybgs module as listed in the requirements.txt file may fail. consider following instructions for your given system as given by the below link
+link:https://github.com/andrewssobral/bgslibrary/wiki/Installation-instructions
+
 >> Check the requirements.txt file to check which modules you need to install.
     
     >>> Alternatively, one can install the modules by simply running "pip install -r requirements.txt" on a terminal without the quotes.
