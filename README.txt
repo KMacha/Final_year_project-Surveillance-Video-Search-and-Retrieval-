@@ -1,6 +1,9 @@
- ****************************************INITIAL CONFIGURATION***************************************************************************
+*****************************************INITIAL CONFIGURATION***************************************************************************
 
 A standard python installation with additional modules is required.
+
+install tkinter, if not installed, for your system by following instructions in the given link below.
+link:https://tkdocs.com/tutorial/install.html
 
 >> Check the requirements.txt file to check which modules you need to install.
     

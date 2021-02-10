@@ -1,2 +1,8 @@
 numpy
 scikit-image
+opencv-python
+torch
+torchvision
+hashlib
+msql.connector
+1`
