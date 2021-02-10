@@ -211,7 +211,6 @@ class QueryProcessing:
             errormessage="Error reading image:\n {}".format(query_image_name)
             messagebox.showinfo(title="Error",message=errormessage,icon="error")
         else:
-            print("trying to update the tkinter box")
             temp_image=cv2.resize(self.query_image,(200,200))
             rgb_image=cv2.cvtColor(temp_image,cv2.COLOR_BGR2RGB)
             pil_image=Image.fromarray(rgb_image)
